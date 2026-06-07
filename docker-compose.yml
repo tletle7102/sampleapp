@@ -1,0 +1,32 @@
+services:
+  sampleapp:
+    build: .
+    image: sampleapp
+    container_name: sampleapp
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - DB_URL=jdbc:postgresql://host.docker.internal:5432/sampleapp
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - infra-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sampleapp.rule=Host(`sampleapp.${DOMAIN}`)"
+      - "traefik.http.routers.sampleapp.entrypoints=websecure"
+      - "traefik.http.routers.sampleapp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sampleapp.loadbalancer.server.port=8090"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8090/actuator/health/liveness"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+
+networks:
+  infra-net:
+    external: true
